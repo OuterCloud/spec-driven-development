@@ -79,9 +79,31 @@ success "项目 $PROJECT_NAME 创建成功！"
 echo
 echo "项目位置: $PROJECTS_DIR/$PROJECT_NAME"
 echo
-echo "接下来您可以："
-echo "  cd $PROJECTS_DIR/$PROJECT_NAME"
-echo "  specify generate spec --description '您的需求描述'"
-echo "  specify generate code --spec <spec-file>"
+
+# 询问用户是否要用 VS Code 打开项目
+echo -n "是否要用 VS Code 打开项目？(y/N): "
+read -r open_vscode
+
+if [[ "$open_vscode" =~ ^[Yy]$ ]]; then
+    if command -v code &> /dev/null; then
+        log "正在用 VS Code 打开项目..."
+        code "$PROJECTS_DIR/$PROJECT_NAME"
+        success "项目已在 VS Code 中打开！"
+        echo
+        echo "在 VS Code 中，您可以："
+        echo "  • 使用 GitHub Copilot Chat 的 /speckit 命令进行规格驱动开发"
+        echo "  • 在终端中运行: specify check  # 检查工具状态"
+    else
+        warn "VS Code 命令行工具 'code' 未找到"
+        echo "请手动打开 VS Code 并打开项目目录: $PROJECTS_DIR/$PROJECT_NAME"
+    fi
+else
+    echo "接下来您可以："
+    echo "  cd $PROJECTS_DIR/$PROJECT_NAME"
+    echo "  code .  # 用 VS Code 打开项目"
+    echo "  在 VS Code 中使用 GitHub Copilot Chat 的 /speckit 命令"
+    echo "  或者使用: specify check  # 检查工具状态"
+fi
+
 echo
 log "开始您的规格驱动开发之旅！"
