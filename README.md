@@ -45,7 +45,28 @@ chmod +x setup-spec-kit.sh
 ./setup-spec-kit.sh
 ```
 
-### 3. 开始使用 spec-kit
+安装脚本会自动：
+
+- ✅ 检测并安装 Python、uv、specify-cli
+- ✅ **自动检测并配置 VS Code 命令行工具**
+- ✅ **智能处理 Node.js 版本问题（支持 NVM、Homebrew）**
+- ✅ 可选安装 GitHub CLI 和 Copilot CLI
+- ✅ 智能检测现有环境，避免重复安装
+
+### 3. 验证安装
+
+```bash
+# 检查所有工具是否正确安装
+specify check
+```
+
+您应该看到：
+
+- ✅ Git version control (available)
+- ✅ Visual Studio Code (available)
+- ○ GitHub Copilot (IDE-based, no CLI check)
+
+### 4. 开始使用 spec-kit
 
 安装完成后，建议创建专门的项目目录来管理您的 spec-kit 项目：
 
@@ -60,8 +81,8 @@ specify init my-awesome-project --ai copilot
 # 进入项目目录
 cd my-awesome-project
 
-# 开始开发
-specify generate spec --description "创建一个用户认证系统"
+# 在 VS Code 中打开项目
+code .
 ```
 
 ## 推荐的目录结构
@@ -85,6 +106,13 @@ specify generate spec --description "创建一个用户认证系统"
 # 回到脚手架目录，使用便捷命令
 cd /path/to/spec-driven-development
 ./create-project.sh my-new-project  # 这将创建项目到 ./projects/ 目录
+
+# 进入项目并在 VS Code 中打开
+cd projects/my-new-project
+code .
+
+# 创建功能规格
+.specify/scripts/bash/create-new-feature.sh --json "您的功能描述" --short-name "功能简称"
 ```
 
 ## 安装的组件
@@ -115,18 +143,31 @@ specify --help
 # 初始化新项目
 specify init <project-name> --ai copilot
 
-# 生成规格说明
-specify generate spec --description "<需求描述>"
-
-# 从规格生成代码
-specify generate code --spec <spec-file>
-
-# 运行测试
-specify test
-
-# 查看项目状态
-specify status
+# 检查工具安装状态
+specify check
 ```
+
+### 实际工作流程
+
+spec-kit 的完整工作流程：
+
+```bash
+# 1. 验证环境
+specify check
+
+# 2. 创建功能分支和规格文件
+.specify/scripts/bash/create-new-feature.sh --json "创建用户认证系统" --short-name "user-auth"
+
+# 3. 在 VS Code 中编辑规格文件（会自动切换到功能分支）
+code ../../specs/001-user-auth/spec.md
+
+# 4. 在 VS Code 的 Copilot Chat 中完善规格内容
+# @github/copilot /speckit.specify <功能描述>
+
+# 5. 基于规格开发代码（使用 Copilot 辅助）
+```
+
+**重要提示**：`/speckit.specify` 是 GitHub Copilot Chat 的专用命令，必须在 VS Code 的 Copilot Chat 面板中使用，不能在终端中运行。
 
 ### 配置 AI 助手
 
@@ -175,12 +216,61 @@ uv tool list
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+### VS Code 命令行工具配置
+
+**自动配置（推荐）**：运行 `./setup-spec-kit.sh` 时会自动检测并配置
+
+**手动配置（如果自动配置失败）**：
+
+1. 在 VS Code 中按 `Cmd+Shift+P` 打开命令面板
+2. 搜索并选择 "Shell Command: Install 'code' command in PATH"
+3. 点击执行
+
+验证配置是否成功：
+
+```bash
+specify check
+```
+
+应该会看到 "Visual Studio Code (available)" ✅
+
+### Node.js 版本问题
+
+**症状**：安装 GitHub Copilot CLI 时出现版本错误
+
+```
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   required: { node: '>=22' }
+```
+
+**自动解决**：运行 `./setup-spec-kit.sh` 时会自动处理：
+
+- ✅ 检测当前 Node.js 版本
+- ✅ 识别 NVM 或 Homebrew 管理的 Node.js
+- ✅ 自动切换或安装合适版本
+
+**手动解决**：
+
+```bash
+# 如果使用 NVM
+nvm install --lts
+nvm use --lts
+
+# 如果使用 Homebrew
+brew upgrade node
+
+# 验证版本
+node --version  # 应该显示 ≥ v22.0.0
+```
+
 ## 开发流程建议
 
-1. **规格先行**: 使用 `specify generate spec` 先定义需求
-2. **代码生成**: 基于规格使用 AI 生成初始代码
-3. **迭代改进**: 通过规格和代码的对比不断改进
-4. **测试验证**: 使用生成的测试确保代码质量
+spec-kit 的实际工作流程：
+
+1. **创建项目**: 使用 `specify init` 或 `./create-project.sh` 创建项目
+2. **规格驱动**: 在 VS Code 中使用 GitHub Copilot Chat 的 `/speckit.specify` 命令定义功能
+3. **脚本辅助**: 使用项目内的 `.specify/scripts/` 脚本进行开发辅助
+4. **迭代开发**: 通过 Copilot Chat 和项目脚本不断完善规格和代码
 
 ## 贡献
 
