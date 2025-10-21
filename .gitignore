@@ -1,0 +1,36 @@
+# Spec-kit generated projects
+projects/*
+!projects/README.md
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+.env
+
+# Node.js (if using Copilot CLI)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
