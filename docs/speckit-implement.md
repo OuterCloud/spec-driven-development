@@ -7,15 +7,19 @@
 ## 基本用法
 
 ### 直接使用（常见方式）
+
 ```
 @github/copilot /speckit.implement
 ```
+
 **实际效果**：
+
 - 基于当前的规范或任务文档生成代码
 - 自动识别需要实现的功能模块
 - 生成符合最佳实践的代码结构
 
 ### 带描述使用
+
 ```
 @github/copilot /speckit.implement [具体功能或模块的实现]
 ```
@@ -25,13 +29,14 @@
 - 根据技术规范生成代码框架
 - 实现特定功能模块的代码
 - 基于任务清单生成对应的代码
-- 创建符合规范的API接口实现
+- 创建符合规范的 API 接口实现
 
 ## 实际使用场景
 
 ### 基于规范文档实现
 
 **操作步骤**：
+
 1. 在技术规范文档中使用 `/speckit.implement`
 2. Copilot 分析规范内容
 3. 生成对应的代码实现
@@ -45,8 +50,9 @@
 ### 1. 在规范文档中直接使用
 
 直接在技术规范中使用，获得完整的功能实现：
+
 - 自动生成数据模型
-- 创建API接口代码
+- 创建 API 接口代码
 - 实现业务逻辑
 
 ### 2. 分模块逐步实现
@@ -60,12 +66,14 @@
 **输入**：在用户认证规范文档中执行 `/speckit.implement`
 
 **输出示例**：
-```markdown
+
+````markdown
 # 用户认证系统代码实现
 
 ## 数据模型实现
 
 ### User Model (Prisma Schema)
+
 ```prisma
 // prisma/schema.prisma
 
@@ -116,23 +124,25 @@ model UserProfile {
   @@map("user_profiles")
 }
 ```
+````
 
-## 后端API实现
+## 后端 API 实现
 
 ### 认证控制器
+
 ```typescript
 // src/controllers/auth.controller.ts
 
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { sendVerificationEmail } from '../services/email.service';
-import { AuthRequest } from '../types/auth.types';
+import { Request, Response } from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+import { sendVerificationEmail } from "../services/email.service";
+import { AuthRequest } from "../types/auth.types";
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = '1h';
+const JWT_EXPIRES_IN = "1h";
 const REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export class AuthController {
@@ -145,19 +155,19 @@ export class AuthController {
       if (!email || !password) {
         return res.status(400).json({
           success: false,
-          message: '邮箱和密码是必填项'
+          message: "邮箱和密码是必填项",
         });
       }
 
       // 检查用户是否已存在
       const existingUser = await prisma.user.findUnique({
-        where: { email }
+        where: { email },
       });
 
       if (existingUser) {
         return res.status(409).json({
           success: false,
-          message: '该邮箱已被注册'
+          message: "该邮箱已被注册",
         });
       }
 
@@ -171,7 +181,7 @@ export class AuthController {
           email,
           passwordHash,
           firstName,
-          lastName
+          lastName,
         },
         select: {
           id: true,
@@ -179,8 +189,8 @@ export class AuthController {
           firstName: true,
           lastName: true,
           emailVerified: true,
-          createdAt: true
-        }
+          createdAt: true,
+        },
       });
 
       // 发送验证邮件
@@ -188,15 +198,14 @@ export class AuthController {
 
       res.status(201).json({
         success: true,
-        message: '注册成功，请检查邮箱完成验证',
-        data: { user }
+        message: "注册成功，请检查邮箱完成验证",
+        data: { user },
       });
-
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       res.status(500).json({
         success: false,
-        message: '注册失败，请稍后重试'
+        message: "注册失败，请稍后重试",
       });
     }
   }
@@ -206,17 +215,17 @@ export class AuthController {
     try {
       const { email, password, rememberMe } = req.body;
       const ipAddress = req.ip;
-      const userAgent = req.get('User-Agent');
+      const userAgent = req.get("User-Agent");
 
       // 查找用户
       const user = await prisma.user.findUnique({
-        where: { email }
+        where: { email },
       });
 
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: '邮箱或密码错误'
+          message: "邮箱或密码错误",
         });
       }
 
@@ -227,7 +236,7 @@ export class AuthController {
         );
         return res.status(423).json({
           success: false,
-          message: `账户已锁定，请 ${remainingTime} 分钟后重试`
+          message: `账户已锁定，请 ${remainingTime} 分钟后重试`,
         });
       }
 
@@ -246,12 +255,12 @@ export class AuthController {
 
         await prisma.user.update({
           where: { id: user.id },
-          data: updateData
+          data: updateData,
         });
 
         return res.status(401).json({
           success: false,
-          message: '邮箱或密码错误'
+          message: "邮箱或密码错误",
         });
       }
 
@@ -261,8 +270,8 @@ export class AuthController {
           where: { id: user.id },
           data: {
             loginAttempts: 0,
-            lockedUntil: null
-          }
+            lockedUntil: null,
+          },
         });
       }
 
@@ -275,9 +284,9 @@ export class AuthController {
 
       // 生成 refresh token
       const refreshToken = jwt.sign(
-        { userId: user.id, type: 'refresh' },
+        { userId: user.id, type: "refresh" },
         JWT_SECRET,
-        { expiresIn: '30d' }
+        { expiresIn: "30d" }
       );
 
       // 保存 session
@@ -287,19 +296,19 @@ export class AuthController {
           refreshToken,
           expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN),
           ipAddress,
-          userAgent
-        }
+          userAgent,
+        },
       });
 
       // 设置 refresh token cookie
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict' as const,
-        maxAge: rememberMe ? REFRESH_TOKEN_EXPIRES_IN : undefined
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict" as const,
+        maxAge: rememberMe ? REFRESH_TOKEN_EXPIRES_IN : undefined,
       };
 
-      res.cookie('refreshToken', refreshToken, cookieOptions);
+      res.cookie("refreshToken", refreshToken, cookieOptions);
 
       res.json({
         success: true,
@@ -311,16 +320,15 @@ export class AuthController {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            emailVerified: user.emailVerified
-          }
-        }
+            emailVerified: user.emailVerified,
+          },
+        },
       });
-
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       res.status(500).json({
         success: false,
-        message: '登录失败，请稍后重试'
+        message: "登录失败，请稍后重试",
       });
     }
   }
@@ -333,30 +341,30 @@ export class AuthController {
       if (!refreshToken) {
         return res.status(401).json({
           success: false,
-          message: '未找到刷新令牌'
+          message: "未找到刷新令牌",
         });
       }
 
       // 验证 refresh token
       const decoded = jwt.verify(refreshToken, JWT_SECRET) as any;
-      
-      if (decoded.type !== 'refresh') {
+
+      if (decoded.type !== "refresh") {
         return res.status(401).json({
           success: false,
-          message: '无效的刷新令牌'
+          message: "无效的刷新令牌",
         });
       }
 
       // 查找 session
       const session = await prisma.userSession.findUnique({
         where: { refreshToken },
-        include: { user: true }
+        include: { user: true },
       });
 
       if (!session || session.expiresAt < new Date()) {
         return res.status(401).json({
           success: false,
-          message: '刷新令牌已过期'
+          message: "刷新令牌已过期",
         });
       }
 
@@ -371,15 +379,14 @@ export class AuthController {
         success: true,
         data: {
           accessToken,
-          expiresIn: 3600
-        }
+          expiresIn: 3600,
+        },
       });
-
     } catch (error) {
-      console.error('Refresh token error:', error);
+      console.error("Refresh token error:", error);
       res.status(401).json({
         success: false,
-        message: '刷新令牌无效'
+        message: "刷新令牌无效",
       });
     }
   }
@@ -392,23 +399,22 @@ export class AuthController {
       if (refreshToken) {
         // 删除 session
         await prisma.userSession.deleteMany({
-          where: { refreshToken }
+          where: { refreshToken },
         });
       }
 
       // 清除 cookie
-      res.clearCookie('refreshToken');
+      res.clearCookie("refreshToken");
 
       res.json({
         success: true,
-        message: '登出成功'
+        message: "登出成功",
       });
-
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       res.status(500).json({
         success: false,
-        message: '登出失败'
+        message: "登出失败",
       });
     }
   }
@@ -416,13 +422,14 @@ export class AuthController {
 ```
 
 ### 认证中间件
+
 ```typescript
 // src/middleware/auth.middleware.ts
 
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import { AuthRequest } from '../types/auth.types';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+import { AuthRequest } from "../types/auth.types";
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -435,10 +442,10 @@ export async function authMiddleware(
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: '未提供认证令牌'
+        message: "未提供认证令牌",
       });
     }
 
@@ -455,40 +462,39 @@ export async function authMiddleware(
         email: true,
         firstName: true,
         lastName: true,
-        emailVerified: true
-      }
+        emailVerified: true,
+      },
     });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: '用户不存在'
+        message: "用户不存在",
       });
     }
 
     // 将用户信息添加到请求对象
     req.user = user;
     next();
-
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       return res.status(401).json({
         success: false,
-        message: '令牌已过期'
+        message: "令牌已过期",
       });
     }
 
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({
         success: false,
-        message: '无效的令牌'
+        message: "无效的令牌",
       });
     }
 
-    console.error('Auth middleware error:', error);
+    console.error("Auth middleware error:", error);
     res.status(500).json({
       success: false,
-      message: '认证验证失败'
+      message: "认证验证失败",
     });
   }
 }
@@ -502,7 +508,7 @@ export async function optionalAuthMiddleware(
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return next(); // 继续执行，但没有用户信息
     }
 
@@ -516,8 +522,8 @@ export async function optionalAuthMiddleware(
         email: true,
         firstName: true,
         lastName: true,
-        emailVerified: true
-      }
+        emailVerified: true,
+      },
     });
 
     if (user) {
@@ -525,7 +531,6 @@ export async function optionalAuthMiddleware(
     }
 
     next();
-
   } catch (error) {
     // 忽略认证错误，继续执行
     next();
@@ -536,14 +541,15 @@ export async function optionalAuthMiddleware(
 ## 前端实现
 
 ### React 认证组件
+
 ```typescript
 // src/components/auth/LoginForm.tsx
 
-import React, { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Alert } from '../ui/Alert';
+import React, { useState } from "react";
+import { useAuth } from "../../hooks/useAuth";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Alert } from "../ui/Alert";
 
 interface LoginFormData {
   email: string;
@@ -553,9 +559,9 @@ interface LoginFormData {
 
 export const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
-    rememberMe: false
+    email: "",
+    password: "",
+    rememberMe: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { login, isLoading, error } = useAuth();
@@ -564,15 +570,15 @@ export const LoginForm: React.FC = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
-      newErrors.email = '请输入邮箱地址';
+      newErrors.email = "请输入邮箱地址";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = '请输入有效的邮箱地址';
+      newErrors.email = "请输入有效的邮箱地址";
     }
 
     if (!formData.password) {
-      newErrors.password = '请输入密码';
+      newErrors.password = "请输入密码";
     } else if (formData.password.length < 6) {
-      newErrors.password = '密码至少6位字符';
+      newErrors.password = "密码至少6位字符";
     }
 
     setErrors(newErrors);
@@ -593,22 +599,22 @@ export const LoginForm: React.FC = () => {
     }
   };
 
-  const handleInputChange = (field: keyof LoginFormData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = field === 'rememberMe' ? e.target.checked : e.target.value;
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // 清除相关错误
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
+  const handleInputChange =
+    (field: keyof LoginFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = field === "rememberMe" ? e.target.checked : e.target.value;
+      setFormData((prev) => ({ ...prev, [field]: value }));
+
+      // 清除相关错误
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    };
 
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold text-center mb-6">用户登录</h2>
-      
+
       {error && (
         <Alert type="error" className="mb-4">
           {error}
@@ -621,7 +627,7 @@ export const LoginForm: React.FC = () => {
             type="email"
             placeholder="邮箱地址"
             value={formData.email}
-            onChange={handleInputChange('email')}
+            onChange={handleInputChange("email")}
             error={errors.email}
             disabled={isLoading}
           />
@@ -632,7 +638,7 @@ export const LoginForm: React.FC = () => {
             type="password"
             placeholder="密码"
             value={formData.password}
-            onChange={handleInputChange('password')}
+            onChange={handleInputChange("password")}
             error={errors.password}
             disabled={isLoading}
           />
@@ -643,7 +649,7 @@ export const LoginForm: React.FC = () => {
             type="checkbox"
             id="rememberMe"
             checked={formData.rememberMe}
-            onChange={handleInputChange('rememberMe')}
+            onChange={handleInputChange("rememberMe")}
             disabled={isLoading}
             className="mr-2"
           />
@@ -663,7 +669,10 @@ export const LoginForm: React.FC = () => {
       </form>
 
       <div className="mt-4 text-center">
-        <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+        <a
+          href="/forgot-password"
+          className="text-sm text-blue-600 hover:underline"
+        >
           忘记密码？
         </a>
       </div>
@@ -682,12 +691,13 @@ export const LoginForm: React.FC = () => {
 ```
 
 ### 认证 Hook
+
 ```typescript
 // src/hooks/useAuth.ts
 
-import { useState, useCallback, useContext } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
-import { authAPI } from '../services/auth.api';
+import { useState, useCallback, useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
+import { authAPI } from "../services/auth.api";
 
 interface LoginData {
   email: string;
@@ -708,37 +718,41 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
 
   const { user, setUser, setToken } = context;
 
-  const login = useCallback(async (data: LoginData) => {
-    setIsLoading(true);
-    setError(null);
+  const login = useCallback(
+    async (data: LoginData) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await authAPI.login(data);
-      
-      if (response.success) {
-        setToken(response.data.accessToken);
-        setUser(response.data.user);
-        
-        // 存储到 localStorage
-        localStorage.setItem('accessToken', response.data.accessToken);
-        
-        return response.data;
-      } else {
-        throw new Error(response.message);
+      try {
+        const response = await authAPI.login(data);
+
+        if (response.success) {
+          setToken(response.data.accessToken);
+          setUser(response.data.user);
+
+          // 存储到 localStorage
+          localStorage.setItem("accessToken", response.data.accessToken);
+
+          return response.data;
+        } else {
+          throw new Error(response.message);
+        }
+      } catch (err: any) {
+        const message =
+          err.response?.data?.message || err.message || "登录失败";
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      const message = err.response?.data?.message || err.message || '登录失败';
-      setError(message);
-      throw new Error(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setUser, setToken]);
+    },
+    [setUser, setToken]
+  );
 
   const register = useCallback(async (data: RegisterData) => {
     setIsLoading(true);
@@ -746,14 +760,14 @@ export const useAuth = () => {
 
     try {
       const response = await authAPI.register(data);
-      
+
       if (response.success) {
         return response.data;
       } else {
         throw new Error(response.message);
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || '注册失败';
+      const message = err.response?.data?.message || err.message || "注册失败";
       setError(message);
       throw new Error(message);
     } finally {
@@ -767,11 +781,11 @@ export const useAuth = () => {
     try {
       await authAPI.logout();
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error("Logout error:", err);
     } finally {
       setUser(null);
       setToken(null);
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem("accessToken");
       setIsLoading(false);
     }
   }, [setUser, setToken]);
@@ -783,7 +797,7 @@ export const useAuth = () => {
     error,
     login,
     register,
-    logout
+    logout,
   };
 };
 ```
@@ -791,16 +805,17 @@ export const useAuth = () => {
 ## 测试实现
 
 ### API 测试
+
 ```typescript
 // tests/auth.test.ts
 
-import request from 'supertest';
-import { app } from '../src/app';
-import { PrismaClient } from '@prisma/client';
+import request from "supertest";
+import { app } from "../src/app";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-describe('Auth API', () => {
+describe("Auth API", () => {
   beforeEach(async () => {
     // 清理测试数据
     await prisma.userSession.deleteMany();
@@ -811,17 +826,17 @@ describe('Auth API', () => {
     await prisma.$disconnect();
   });
 
-  describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
+  describe("POST /api/auth/register", () => {
+    it("should register a new user successfully", async () => {
       const userData = {
-        email: 'test@example.com',
-        password: 'SecurePass123!',
-        firstName: '张',
-        lastName: '三'
+        email: "test@example.com",
+        password: "SecurePass123!",
+        firstName: "张",
+        lastName: "三",
       };
 
       const response = await request(app)
-        .post('/api/auth/register')
+        .post("/api/auth/register")
         .send(userData)
         .expect(201);
 
@@ -830,102 +845,96 @@ describe('Auth API', () => {
       expect(response.body.data.user.firstName).toBe(userData.firstName);
     });
 
-    it('should reject duplicate email registration', async () => {
+    it("should reject duplicate email registration", async () => {
       const userData = {
-        email: 'test@example.com',
-        password: 'SecurePass123!',
-        firstName: '张',
-        lastName: '三'
+        email: "test@example.com",
+        password: "SecurePass123!",
+        firstName: "张",
+        lastName: "三",
       };
 
       // 第一次注册
-      await request(app)
-        .post('/api/auth/register')
-        .send(userData)
-        .expect(201);
+      await request(app).post("/api/auth/register").send(userData).expect(201);
 
       // 第二次注册相同邮箱
       const response = await request(app)
-        .post('/api/auth/register')
+        .post("/api/auth/register")
         .send(userData)
         .expect(409);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('已被注册');
+      expect(response.body.message).toContain("已被注册");
     });
   });
 
-  describe('POST /api/auth/login', () => {
+  describe("POST /api/auth/login", () => {
     let testUser: any;
 
     beforeEach(async () => {
       // 创建测试用户
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'SecurePass123!',
-          firstName: '张',
-          lastName: '三'
-        });
+      const response = await request(app).post("/api/auth/register").send({
+        email: "test@example.com",
+        password: "SecurePass123!",
+        firstName: "张",
+        lastName: "三",
+      });
 
       testUser = response.body.data.user;
     });
 
-    it('should login successfully with correct credentials', async () => {
+    it("should login successfully with correct credentials", async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post("/api/auth/login")
         .send({
-          email: 'test@example.com',
-          password: 'SecurePass123!'
+          email: "test@example.com",
+          password: "SecurePass123!",
         })
         .expect(200);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data.accessToken).toBeDefined();
-      expect(response.body.data.user.email).toBe('test@example.com');
+      expect(response.body.data.user.email).toBe("test@example.com");
     });
 
-    it('should reject login with wrong password', async () => {
+    it("should reject login with wrong password", async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post("/api/auth/login")
         .send({
-          email: 'test@example.com',
-          password: 'WrongPassword'
+          email: "test@example.com",
+          password: "WrongPassword",
         })
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('密码错误');
+      expect(response.body.message).toContain("密码错误");
     });
 
-    it('should lock account after 3 failed attempts', async () => {
+    it("should lock account after 3 failed attempts", async () => {
       // 3次错误登录
       for (let i = 0; i < 3; i++) {
-        await request(app)
-          .post('/api/auth/login')
-          .send({
-            email: 'test@example.com',
-            password: 'WrongPassword'
-          });
+        await request(app).post("/api/auth/login").send({
+          email: "test@example.com",
+          password: "WrongPassword",
+        });
       }
 
       // 第4次尝试应该返回账户锁定
       const response = await request(app)
-        .post('/api/auth/login')
+        .post("/api/auth/login")
         .send({
-          email: 'test@example.com',
-          password: 'SecurePass123!'
+          email: "test@example.com",
+          password: "SecurePass123!",
         })
         .expect(423);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('账户已锁定');
+      expect(response.body.message).toContain("账户已锁定");
     });
   });
 });
 ```
-```
+
+````
 
 ### 案例 2：商品API实现
 
@@ -951,27 +960,29 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   category Category @relation(fields: [categoryId], references: [id])
-  
+
   @@map("products")
 }
-```
+````
 
-## API控制器实现
+## API 控制器实现
+
 ```typescript
 export class ProductController {
   async createProduct(req: Request, res: Response) {
     // 商品创建逻辑
   }
-  
+
   async getProducts(req: Request, res: Response) {
     // 商品列表查询
   }
-  
+
   async searchProducts(req: Request, res: Response) {
     // 商品搜索实现
   }
 }
 ```
+
 ```
 
 ## 输出格式说明
@@ -998,3 +1009,4 @@ implement 指令生成的核心内容：
 - 根据 `/speckit.tasks` 的任务清单生成代码
 - 结合 `/speckit.plan` 的开发计划实施
 - 使用 `/speckit.clarify` 澄清实现细节
+```
