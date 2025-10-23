@@ -1,7 +1,3 @@
-# Spec-kit generated projects
-projects/*
-!projects/README.md
-
 # macOS
 .DS_Store
 
