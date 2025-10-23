@@ -52,20 +52,162 @@ fi
 # 2. 检查 Python ≥ 3.11
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "0.0")
 IFS='.' read -ra VER <<< "$PYTHON_VERSION"
-if [[ ${VER[0]} -lt 3 ]] || ([[ ${VER[0]} -eq 3 ]] && [[ ${VER[1]} -lt 11 ]]); then
-    warn "Python 版本过低（当前: $PYTHON_VERSION），需要 ≥ 3.11"
-    log "推荐使用 pyenv 安装新版 Python"
-    read -p "是否尝试用 Homebrew 安装 Python 3.12？(y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+
+install_python_via_pyenv() {
+    local python_version="3.12.7"  # 推荐的稳定版本
+    
+    # 检查并安装 pyenv
+    if ! command -v pyenv &> /dev/null; then
+        log "pyenv 未安装，正在安装..."
         if ! command -v brew &> /dev/null; then
             log "正在安装 Homebrew..."
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         fi
-        brew install python@3.12
-        success "Python 3.12 已通过 Homebrew 安装"
+        
+        log "通过 Homebrew 安装 pyenv..."
+        brew install pyenv
+        
+        # 配置 shell 环境
+        log "配置 pyenv 环境变量..."
+        SHELL_RC=""
+        if [[ "$SHELL" == *"zsh"* ]] || [[ -n "$ZSH_VERSION" ]]; then
+            SHELL_RC="$HOME/.zshrc"
+        elif [[ "$SHELL" == *"bash"* ]]; then
+            SHELL_RC="$HOME/.bash_profile"
+        fi
+        
+        if [[ -n "$SHELL_RC" ]]; then
+            # 检查是否已经配置过 pyenv
+            if ! grep -q 'pyenv init' "$SHELL_RC" 2>/dev/null; then
+                log "配置 $SHELL_RC..."
+                echo '' >> "$SHELL_RC"
+                echo '# pyenv configuration' >> "$SHELL_RC"
+                echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> "$SHELL_RC"
+                echo 'eval "$(pyenv init --path)"' >> "$SHELL_RC"
+                echo 'eval "$(pyenv init -)"' >> "$SHELL_RC"
+            fi
+            
+            # 加载 pyenv 到当前 shell
+            export PATH="$HOME/.pyenv/bin:$PATH"
+            if command -v pyenv &> /dev/null; then
+                eval "$(pyenv init --path)"
+                eval "$(pyenv init -)"
+            fi
+        fi
+        
+        success "pyenv 已安装"
     else
-        error "请手动安装 Python ≥ 3.11 后重试"
+        success "pyenv 已安装: $(pyenv --version)"
+        # 确保当前 shell 中 pyenv 可用
+        export PATH="$HOME/.pyenv/bin:$PATH"
+        eval "$(pyenv init --path)" 2>/dev/null || true
+        eval "$(pyenv init -)" 2>/dev/null || true
+    fi
+    
+    # 检查是否已安装所需的 Python 版本
+    if pyenv versions | grep -q "$python_version"; then
+        log "Python $python_version 已通过 pyenv 安装"
+        pyenv global "$python_version"
+        success "已切换到 Python $python_version"
+    else
+        log "正在通过 pyenv 安装 Python $python_version..."
+        log "这可能需要几分钟时间..."
+        
+        # 安装编译依赖
+        if ! command -v brew &> /dev/null; then
+            log "正在安装 Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+        
+        log "安装 Python 编译依赖..."
+        brew install openssl readline sqlite3 xz zlib tcl-tk
+        
+        # 设置编译环境变量
+        export LDFLAGS="-L$(brew --prefix openssl)/lib -L$(brew --prefix readline)/lib -L$(brew --prefix sqlite)/lib -L$(brew --prefix xz)/lib -L$(brew --prefix zlib)/lib"
+        export CPPFLAGS="-I$(brew --prefix openssl)/include -I$(brew --prefix readline)/include -I$(brew --prefix sqlite)/include -I$(brew --prefix xz)/include -I$(brew --prefix zlib)/include"
+        export PKG_CONFIG_PATH="$(brew --prefix openssl)/lib/pkgconfig:$(brew --prefix readline)/lib/pkgconfig:$(brew --prefix sqlite)/lib/pkgconfig:$(brew --prefix xz)/lib/pkgconfig:$(brew --prefix zlib)/lib/pkgconfig"
+        
+        # 安装 Python
+        if pyenv install "$python_version"; then
+            pyenv global "$python_version"
+            success "Python $python_version 已通过 pyenv 安装并设为全局版本"
+            
+            # 刷新当前 shell 的 Python 环境
+            export PATH="$(pyenv root)/shims:$PATH"
+            hash -r
+        else
+            error "Python $python_version 通过 pyenv 安装失败"
+        fi
+    fi
+    
+    # 验证安装
+    if command -v python3 &> /dev/null; then
+        NEW_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo "未知")
+        success "当前 Python 版本: $NEW_VERSION"
+        log "Python 路径: $(which python3)"
+    fi
+}
+
+install_python_via_homebrew() {
+    if ! command -v brew &> /dev/null; then
+        log "正在安装 Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+    
+    log "通过 Homebrew 安装 Python 3.12..."
+    brew install python@3.12
+    
+    # 确保新安装的 Python 在 PATH 中
+    export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+    hash -r
+    
+    success "Python 3.12 已通过 Homebrew 安装"
+    
+    # 验证安装
+    if command -v python3 &> /dev/null; then
+        NEW_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo "未知")
+        success "当前 Python 版本: $NEW_VERSION"
+        log "Python 路径: $(which python3)"
+    fi
+}
+
+if [[ ${VER[0]} -lt 3 ]] || ([[ ${VER[0]} -eq 3 ]] && [[ ${VER[1]} -lt 11 ]]); then
+    warn "Python 版本过低（当前: $PYTHON_VERSION），需要 ≥ 3.11"
+    echo
+    echo "请选择 Python 安装方式："
+    echo "1) pyenv（推荐）- 可管理多个 Python 版本"
+    echo "2) Homebrew - 简单快速安装"
+    echo "3) 跳过安装"
+    echo
+    read -p "请输入选择 (1/2/3): " -n 1 -r PYTHON_CHOICE
+    echo
+    
+    case $PYTHON_CHOICE in
+        1)
+            log "选择通过 pyenv 安装 Python..."
+            install_python_via_pyenv
+            ;;
+        2)
+            log "选择通过 Homebrew 安装 Python..."
+            install_python_via_homebrew
+            ;;
+        3)
+            warn "跳过 Python 安装"
+            error "请手动安装 Python ≥ 3.11 后重试"
+            ;;
+        *)
+            warn "无效选择，默认使用 pyenv 安装..."
+            install_python_via_pyenv
+            ;;
+    esac
+    
+    # 重新检查 Python 版本
+    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "0.0")
+    IFS='.' read -ra VER <<< "$PYTHON_VERSION"
+    if [[ ${VER[0]} -lt 3 ]] || ([[ ${VER[0]} -eq 3 ]] && [[ ${VER[1]} -lt 11 ]]); then
+        error "Python 安装后版本仍不满足要求（当前: $PYTHON_VERSION）"
+    else
+        success "Python 版本现在满足要求: $PYTHON_VERSION"
     fi
 else
     success "Python 版本满足要求: $PYTHON_VERSION"
