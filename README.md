@@ -28,18 +28,20 @@ specify check
 
 ## 开发流程
 
+通过 vscode 打开项目。
+
 ```bash
-# 1. 创建功能规范
-cd your-project
-.specify/scripts/bash/create-new-feature.sh --json "功能描述" --short-name "feature"
-
-# 2. 在 VS Code 中编辑 specs/001-feature/spec.md
-
-# 3. 使用 Copilot Chat
-# 在 VS Code Copilot Chat 中: @github/copilot /speckit.specify <描述>
-
-# 4. 开发代码
+code my-project
 ```
+
+打开 Copilot Chat 插件, 开始撰写需求。
+
+- 定义项目宪法，使用 `/speckit.constitution` 指令。详见 [speckit-constitution.md](docs/speckit-constitution.md)
+- 撰写需求时，使用 `/speckit.specify` 指令。详见 [speckit-specify.md](docs/speckit-specify.md)
+- 澄清需求时，使用 `/speckit.clarify` 指令。详见 [speckit-clarify.md](docs/speckit-clarify.md)
+- 制定实施计划时，使用 `/speckit.plan` 指令。详见 [speckit-plan.md](docs/speckit-plan.md)
+- 分解任务时，使用 `/speckit.tasks` 指令。详见 [speckit-tasks.md](docs/speckit-tasks.md)
+- 实现任务时，使用 `/speckit.implement` 指令。详见 [speckit-implement.md](docs/speckit-implement.md)
 
 ## 常见问题
 
